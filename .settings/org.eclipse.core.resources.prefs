@@ -1,5 +1,7 @@
 eclipse.preferences.version=1
+encoding//once-codes/add_category_index.py=utf-8
 encoding/count_products.py=utf-8
 encoding/csv2xls.py=utf-8
 encoding/impl_info.py=utf-8
+encoding/load_products2npu.py=utf-8
 encoding/xls2csv.py=utf-8
