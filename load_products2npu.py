@@ -7,6 +7,7 @@ import os
 import MySQLdb
 import datetime
 import ConfigParser
+import re
 
 cf = ConfigParser.ConfigParser()
 cf.read("./config/all_dbs.cfg")
@@ -94,7 +95,7 @@ def compute_category_path(db, category_id, merchant_id):
     
 
 def load_into_product_scores(filename):
-    sql = '''insert into product_scores (product_id, merchant_id, category_id, category_path, price, reviews, category_idx,\
+    sql = '''replace into product_scores (product_id, merchant_id, category_id, category_path, price, reviews, category_index,\
              product_name, product_url, img_url, ct_status, score, calc_date, score_type) values
              (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
           '''
@@ -111,6 +112,10 @@ def load_into_product_scores(filename):
             print 'wrong line: ' + line
         datas_dic = {}
         for i, key in enumerate(headers):
+            if key=='price': #下面对price进行了float操作
+                print datas[i],
+                datas[i] = re.findall("[\d\.]+", datas[i])[0]
+                print datas[i]
             datas_dic[key] = datas[i]
         
         args = (int(datas_dic['id']), datas_dic['merchant_id'], int(datas_dic['category_id']), datas_dic['category_path'],\
