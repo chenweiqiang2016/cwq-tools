@@ -114,7 +114,10 @@ def load_into_product_scores(filename):
         for i, key in enumerate(headers):
             if key=='price': #下面对price进行了float操作
                 print datas[i],
-                datas[i] = re.findall("[\d\.]+", datas[i])[0]
+                if not re.findall("[\d\.]+", datas[i]):
+                    datas[i] = 0
+                else:
+                    datas[i] = re.findall("[\d\.]+", datas[i])[0]
                 print datas[i]
             datas_dic[key] = datas[i]
         
