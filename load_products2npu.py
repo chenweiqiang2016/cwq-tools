@@ -74,7 +74,13 @@ def get_file_name():
     
             
 def getFormatMerchantList():
-    return ["3C070"]
+    result = []
+    cf2 = ConfigParser.ConfigParser()
+    cf2.read("./config/score_merchants.txt")
+    kvs = cf2.items("merchants")
+    for kv in kvs:
+        result.append(kv[1])
+    return result
 
 def export_from_products():
     filename = get_file_name()
@@ -195,7 +201,7 @@ def load_into_product_scores(filename):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print 'Usage: python %s (export|load) [filename]' %(os.path.basename(sys.argv[0]))
+        print 'Usage: python %s (export|load|score) [filename]' %(os.path.basename(sys.argv[0]))
         sys.exit(1)
     if sys.argv[1] == 'export':
         export_from_products()
@@ -204,6 +210,8 @@ if __name__ == '__main__':
         load_into_product_scores(filename)
     elif sys.argv[1] == 'score':
         export_from_products()
-        
+        load_into_product_scores(saveFile)
     else:
         print 'please input correct args...'
+
+    print 'Successfully Done.'
