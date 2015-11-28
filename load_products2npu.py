@@ -8,6 +8,7 @@ import MySQLdb
 import datetime
 import ConfigParser
 import re
+import codecs
 
 cf = ConfigParser.ConfigParser()
 cf.read("./config/all_dbs.cfg")
@@ -25,8 +26,8 @@ class Db:
         self.conn = MySQLdb.connect(host=get_config(machine, 'host'),
                                     user=get_config(machine, 'user'),
                                     passwd=get_config(machine, 'passwd'),
-                                    db=get_config(machine, 'db')
-                                    )
+                                    db=get_config(machine, 'db'),
+                                    charset='utf8')
         self.cursor = self.conn.cursor()
         self.conn.autocommit(False)
     
@@ -36,24 +37,80 @@ class Db:
         if self.conn:
             self.conn.close()
 
+stats = {}
+            
+def get_file_name():
+    machine = get_config('machines', 'dest.machine')
+    db = Db(machine)
+    merchants = getFormatMerchantList()
+    arg_list = ','.join(['%s'] * len(merchants))
+    sql = """SELECT
+                p.merchant_id, count(*)
+             FROM
+                products p
+             LEFT JOIN
+                product_scores ps 
+             ON 
+                p.id = ps.product_id 
+             WHERE
+                p.merchant_id in (%s)
+             AND 
+                p.cm_picked = 1 
+             AND
+                ps.product_id is null
+             GROUP BY
+                p.merchant_id
+          """
+    db.cursor.execute(sql %arg_list, merchants)
+    merchantList = db.cursor.fetchall()
+    mainPart = ""
+    for item in merchantList:
+        mainPart += item[0].strip()
+        stats[item[0].strip()] = int(item[1])
+    prefix = str(datetime.date.today())
+    suffix = '.csv'
+    db.close()
+    return prefix + '_' + mainPart + suffix
+    
+            
+def getFormatMerchantList():
+    return ["3C070"]
+
 def export_from_products():
-    db = Db('master')
-    sql = '''select id, name, merchant_id, category_id, url, img_url, 
-             price, reviews, category_index, sellstart_date, ct_status
-             from
-             products 
-             where
-             ct_status=11 and merchant_id = 'SD001'
-    '''
-    db.cursor.execute(sql)
+    filename = get_file_name()
+    #将文件名记录下来
+    global saveFile
+    saveFile = filename
+    merchants = getFormatMerchantList()
+    args_list = ','.join(['%s'] * len(merchants))
+    machine = get_config('machines', 'src.machine')
+    db = Db(machine)
+    sql = """SELECT 
+                p.id, p.name, p.merchant_id, p.category_id, 
+                p.url, p.img_url, p.price, p.reviews, p.category_index,
+                p.sellstart_date, p.ct_status 
+             FROM
+                products p
+             LEFT JOIN
+                product_scores ps 
+             ON 
+                p.id = ps.product_id 
+             WHERE
+                p.merchant_id in (%s) 
+             AND 
+                p.cm_picked = 1 
+             AND
+                ps.product_id is null"""
+    db.cursor.execute(sql %args_list, merchants)
     results = db.cursor.fetchall()
-    filename = str(datetime.date.today()) + '_SD001.csv' #TypeError: unsupported operand type(s) for +: 'datetime.date' and 'str'
+    #filename = str(datetime.date.today()) + '_SD001.csv' #TypeError: unsupported operand type(s) for +: 'datetime.date' and 'str'
     fw = open(filename, 'w')
+    fw.write(codecs.BOM_UTF8)
     headers = ['id', 'name', 'merchant_id', 'category_id', 'url', 'img_url', 'price', 'reviews', 'category_index', \
                'sellstart_date', 'ct_status', 'category_path']
     fw.write('\t'.join(headers) + '\n')
     for result in results: #每个result为一个商品信息
-        categoye_path = compute_category_path(db, result[3], 'SD001') #默认为sammydress
+        categoye_path = compute_category_path(db, result[3])
         print categoye_path
         result_list = []
         for item in result:
@@ -64,7 +121,7 @@ def export_from_products():
     fw.close()
     db.close()
 
-def compute_category_path(db, category_id, merchant_id):
+def compute_category_path(db, category_id):
     sql = '''select 
              name, parent_id, level1_category_id, level from categories
              where id=%s
@@ -74,7 +131,7 @@ def compute_category_path(db, category_id, merchant_id):
            '''
     db.cursor.execute(sql, category_id)
     result = db.cursor.fetchone()
-    print category_id, result[3], result[1], result[2]
+    print '[%s](%s){level=%s, parent_id=%s, level1_category_id=%s}' %(result[0], category_id, result[3], result[1], result[2]), 
     
     if int(result[3]) == 1:
         return result[0]
@@ -99,9 +156,13 @@ def load_into_product_scores(filename):
              product_name, product_url, img_url, ct_status, score, calc_date, score_type) values
              (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
           '''
-    db = Db('52') #TypeError: not all arguments converted during string formatting
+    machine = get_config('machines', 'dest.machine')
+    db = Db(machine) #TypeError: not all arguments converted during string formatting
     fw = open(filename, 'r')
-    headers = fw.readline().strip().split('\t')
+    first_line = fw.readline().strip()
+    if first_line.startswith(codecs.BOM_UTF8):
+        first_line = first_line[len(codecs.BOM_UTF8):]
+    headers = first_line.split('\t')
     counter=0
     while True:
         line = fw.readline().strip().replace('\n', '')
@@ -141,5 +202,8 @@ if __name__ == '__main__':
     elif sys.argv[1] == 'load':
         filename = sys.argv[2]
         load_into_product_scores(filename)
+    elif sys.argv[1] == 'score':
+        export_from_products()
+        
     else:
         print 'please input correct args...'

@@ -1,0 +1,16 @@
+使用locale查看编码
+一个LC_ALL 一个LANG 12个LC_XXX
+优先级 LC_ALL > LC_XXX > LANG
+修改/etc/profile
+设置export LC_ALL="en_US.UTF-8" export LANG="en_US.UTF-8"
+
+
+在secureCRT 选项 > 会话选项 > 外观 > 字符编码 中进行设置
+
+
+
+insert时 categoryName是utf-8编码的str 输出 sql %( categoryName)失败
+查询原因是http://blog.csdn.net/qian_f/article/details/9631257
+但是本地机器没有报错
+
+执行sql会失败 'ascii' codec can't decode byte 0xe6 in position 125: ordinal not in range(128)
