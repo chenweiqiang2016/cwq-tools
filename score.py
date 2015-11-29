@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+#2015/11/29 作一次全面的修改 可以作为评分程序使用 选品时cm_pick_time > '2015-11-29'
 #cost time: 2h
 
 import sys
@@ -54,6 +55,8 @@ def get_file_name():
                 p.id = ps.product_id 
              WHERE
                 p.merchant_id in (%s)
+             AND
+                cm_pick_time > '2015-11-29'
              AND 
                 p.cm_picked = 1 
              AND
@@ -70,17 +73,27 @@ def get_file_name():
     prefix = str(datetime.date.today())
     suffix = '.csv'
     db.close()
+    #没有要处理的商品, 直接退出
+    if not mainPart:
+        print 'No merchants, no products, to be added to product_scores, exit!'
+        sys.exit(1)
     return prefix + '_' + mainPart + suffix
     
             
 def getFormatMerchantList():
-    return ["3C070"]
+    result = []
+    cf2 = ConfigParser.ConfigParser()
+    cf2.read("./config/score_merchants.txt")
+    kvs = cf2.items("merchants")
+    for kv in kvs:
+        result.append(kv[1])
+    return result
 
 def export_from_products():
     filename = get_file_name()
     #将文件名记录下来
     global saveFile
-    saveFile = filename
+    saveFile = filename  #type: unicode
     merchants = getFormatMerchantList()
     args_list = ','.join(['%s'] * len(merchants))
     machine = get_config('machines', 'src.machine')
@@ -96,7 +109,9 @@ def export_from_products():
              ON 
                 p.id = ps.product_id 
              WHERE
-                p.merchant_id in (%s) 
+                p.merchant_id in (%s)
+             AND
+                cm_pick_time > '2015-11-29'
              AND 
                 p.cm_picked = 1 
              AND
@@ -174,14 +189,15 @@ def load_into_product_scores(filename):
         datas_dic = {}
         for i, key in enumerate(headers):
             if key=='price': #下面对price进行了float操作
-                print datas[i],
+                print "Origin price:", datas[i],
                 if not re.findall("[\d\.]+", datas[i]):
                     datas[i] = 0
                 else:
                     datas[i] = re.findall("[\d\.]+", datas[i])[0]
-                print datas[i]
+                print "Format price:", datas[i]
             datas_dic[key] = datas[i]
-        
+        if not datas_dic['category_index'] or datas_dic['category_index'].upper()=='NONE': #读出来的是None
+            datas_dic['category_index'] = 0
         args = (int(datas_dic['id']), datas_dic['merchant_id'], int(datas_dic['category_id']), datas_dic['category_path'],\
                 float(datas_dic['price']), int(datas_dic['reviews']), int(datas_dic['category_index']),\
                 datas_dic['name'], datas_dic['url'], datas_dic['img_url'], 0, 0, str(datetime.date.today()), 'manual')
@@ -192,10 +208,24 @@ def load_into_product_scores(filename):
             db.conn.commit()
     db.conn.commit()
 
+def mv(filename):
+    import shutil
+    saveDir = get_config('all', 'save.dir')
+    srcPath = os.path.join(os.getcwd(), filename)
+    print srcPath
+    destPath = os.path.join(saveDir, filename)
+    print destPath
+    shutil.move(filename, destPath)
 
+def print_stat():
+    print "Statistics:"
+    for k in stats.iterkeys():
+        print " "*4 + k + ":", stats.get(k) 
+    
+    
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print 'Usage: python %s (export|load) [filename]' %(os.path.basename(sys.argv[0]))
+        print 'Usage: python %s (export|load|score) [filename]' %(os.path.basename(sys.argv[0]))
         sys.exit(1)
     if sys.argv[1] == 'export':
         export_from_products()
@@ -204,6 +234,10 @@ if __name__ == '__main__':
         load_into_product_scores(filename)
     elif sys.argv[1] == 'score':
         export_from_products()
-        
+        load_into_product_scores(saveFile)
+        mv(saveFile)
+        print_stat()
     else:
         print 'please input correct args...'
+
+    print 'Successfully Done.'
