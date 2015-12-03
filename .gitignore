@@ -5,3 +5,5 @@ datas/
 output/
 
 *.pyc
+
+*.csv
