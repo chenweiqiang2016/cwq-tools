@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+#2015/12/09 解决编码问题 增加encode_item方法
 #2015/11/29 作一次全面的修改 可以作为评分程序使用 选品时cm_pick_time > '2015-11-29'
 #cost time: 2h
 
@@ -126,15 +127,22 @@ def export_from_products():
     fw.write('\t'.join(headers) + '\n')
     for result in results: #每个result为一个商品信息
         categoye_path = compute_category_path(db, result[3])
-        print categoye_path
         result_list = []
         for item in result:
-            result_list.append(str(item))
-        result_list.append(categoye_path)
+            result_list.append(encode_item(item))
+        result_list.append(encode_item(categoye_path)) #返回的category_path是unicode类型
         line = '\t'.join(result_list) + '\n'
         fw.write(line)
     fw.close()
     db.close()
+
+def encode_item(item):
+    if isinstance(item, unicode):
+        return item.encode("utf-8")
+    elif isinstance(item, str):
+        return item
+    else:#int, float, long, None, datetime.date
+        return str(item)
 
 def compute_category_path(db, category_id):
     sql = '''select 
@@ -146,7 +154,7 @@ def compute_category_path(db, category_id):
            '''
     db.cursor.execute(sql, category_id)
     result = db.cursor.fetchone()
-    print '[%s](%s){level=%s, parent_id=%s, level1_category_id=%s}' %(result[0], category_id, result[3], result[1], result[2]), 
+    print '[%s](%s){level=%s, parent_id=%s, level1_category_id=%s}' %(result[0], category_id, result[3], result[1], result[2])
     
     if int(result[3]) == 1:
         return result[0]
