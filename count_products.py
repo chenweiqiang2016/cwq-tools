@@ -87,11 +87,11 @@ def len_str(str1):
     return len(g_str)
 
 def writeIntoFile(content, filename = "cwq.txt"):
-    path = "C:/users/administrator/desktop"
+    path = "C:/users/chenweiqiang/desktop"
     fw = open(os.path.join(path, filename), "w")
     fw.write(content)
     fw.close()
         
 if __name__ == '__main__':
-    filename = 'datas/nanzhuang-tmall_09-07-2015_productInfo.csv' #sys.argv[1]
+    filename = 'E:1688_04-06-2016_productInfo.csv' #sys.argv[1]
     stat(filename)

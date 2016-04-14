@@ -7,3 +7,7 @@ output/
 *.pyc
 
 *.csv
+
+*.xls
+
+*.xlsx
