@@ -8,4 +8,5 @@ encoding/load_products2npu.py=utf-8
 encoding/mysql_timeout.py=utf-8
 encoding/parsePMlogs.py=utf-8
 encoding/score.py=utf-8
+encoding/sqls.py=utf-8
 encoding/xls2csv.py=utf-8
