@@ -26,7 +26,7 @@ def email(message):
     #可能造成发送失败, 报错:smtplib.SMTPDataError: (554, 'DT:SPM smtp1
     server = smtplib.SMTP('smtp.163.com', 25)
     server.set_debuglevel(1)
-    server.login(from_address, '09151827283110')
+    server.login(from_address, 'vip*2013')
     
     msg = MIMEText(message, 'plain', 'utf-8')
     server.sendmail(from_address, to_address, msg.as_string())
@@ -36,7 +36,7 @@ def email2(message):
     #完整的邮件 指定发件人的昵称, 收件人, 邮件主题
     server = smtplib.SMTP('smtp.163.com', 25)
     server.set_debuglevel(1)
-    server.login(from_address, '09151827283110')
+    server.login(from_address, 'vip*2013')
     
     msg = MIMEText(message, 'plain', 'utf-8')
     #之前使用u'中文字符'的方式, 本地运行没有问题, linux机子失败
